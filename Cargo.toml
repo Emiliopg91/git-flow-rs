@@ -1,0 +1,22 @@
+[package]
+name = "gtk-app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+slint = "1"
+rfd = "0"
+fwkarq = "1"
+tokio = "1.52.3"
+git-flow-rs = { git = "https://github.com/Emiliopg91/git-flow-tui", package = "git-flow-rs-core" }
+
+[build-dependencies]
+slint-build = "1"
+
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+opt-level = 3

@@ -1,0 +1,74 @@
+// ui/app.slint
+
+import { Button, ListView, LineEdit } from "std-widgets.slint";
+import { NavBar } from "components/navbar.slint";
+import { MainMenu } from "components/main_menu.slint";
+import { CreatePopUp } from "components/create_popup.slint";
+import { ConsolePopUp } from "components/console_popup.slint";
+export component App inherits Window {
+    width: 500px;
+    height: 400px;
+    title: "Git flow";
+    //icon: @image-url("../rog-control-center.png");
+
+    in property <string> create-err: "";
+    in property <[string]> items;
+    in property <string> console_text: "";
+    in property <bool> console_finished:false;
+    in property <bool> dirty:true;
+
+    in-out property <bool> show_console_dialog:false;
+    in-out property <bool> show_start_dialog:false;
+
+    out property <int> category: 0;
+
+    property <string> start_text: category == 0 ? "Enter feature name" : category == 1 ? "Enter hotfix name" : category == 2 ? "Enter bugfix name" : "Enter hotfix name";
+
+    callback refresh_items(kind: int);
+    callback validate_name(kind: int, name: string);
+    callback check_existing(kind: int, branch: string);
+
+    Rectangle {
+        if root.show_start_dialog: CreatePopUp {
+            width: 100%;
+            height: 100%;
+            z: 100;
+            placeholder: start_text;
+            error: root.create-err;
+
+            on_close => {
+                root.show_start_dialog = false;
+            }
+            on_confirm(name) => {
+                root.validate_name(root.category,name)
+            }
+        }
+
+        if root.show_console_dialog: ConsolePopUp {
+            width: 100%;
+            height: 100%;
+            z: 100;
+            body: root.console_text;
+            finished: root.console_finished;
+
+            on_close => {
+                root.show_console_dialog = false;
+            }
+        }
+
+        mm := MainMenu {
+            width: 100%;
+            height: 100%;
+            enabled: !root.show_start_dialog;
+            items: items;
+            current-category <=> category;
+            dirty: root.dirty;
+            category-changes(cat) => {
+                root.refresh_items(cat);
+            }
+            create-requested(category) => {
+                root.show_start_dialog = true;
+            }
+        }
+    }
+}

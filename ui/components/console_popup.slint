@@ -1,0 +1,33 @@
+import { PopUp } from "popup.slint";
+import { Button } from "std-widgets.slint";
+export component ConsolePopUp {
+    in property <string> body;
+    in property <bool> finished;
+    callback on_close();
+
+    PopUp {
+        Rectangle {
+            width: 85%;
+            height: 85%;
+            background: #181818;
+            VerticalLayout {
+                spacing: 10px;
+                padding: 16px;
+
+                Text {
+                    vertical-stretch: 1;
+                    text: root.body;
+                    color: white;
+                }
+
+                if root.finished: Button {
+                    vertical-stretch: 0;
+                    text: "Close";
+                    clicked => {
+                        root.on_close()
+                    }
+                }
+            }
+        }
+    }
+}

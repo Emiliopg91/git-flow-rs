@@ -1,0 +1,119 @@
+import { NavBar } from "navbar.slint";
+import {
+    Button,
+    ListView,
+    TabWidget,
+    Palette,
+    HorizontalBox,
+} from "std-widgets.slint";
+
+
+component ListItem inherits Rectangle {
+    height: 40px;
+    in-out property <string> name <=> label.text;
+    in property <bool> selected;
+    callback clicked <=> touch.clicked;
+
+    states [
+        selected when root.selected: {
+            state.opacity: 1;
+        }
+        hover when touch.has-hover: {
+            state.opacity: 0.5;
+        }
+    ]
+
+    state := Rectangle {
+        opacity: 0;
+        background: Palette.selection-background;
+        animate opacity { duration: 150ms; }
+        height: l.preferred-height;
+    }
+
+    l := HorizontalBox {
+        label := Text {
+            color: Palette.foreground;
+            vertical-alignment: center;
+            horizontal-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+export component MainMenu inherits Rectangle {
+    in property <[string]> items;
+    in property <bool> enabled;
+    in property <bool> dirty;
+
+    in-out property <int> current-category: 0;
+
+    property <int> current-item: -1;
+    property <[string]> categories: ["Features", "Releases", "Bugfixes", "Hotfixes"];
+
+    callback create-requested(category: int);
+    callback category-changes(category: int);
+
+    VerticalLayout {
+        HorizontalLayout {
+            vertical-stretch: 0;
+            Rectangle {
+                horizontal-stretch: 1;
+                NavBar {
+                    entries: root.categories;
+                    enabled: root.enabled;
+                    current-item: root.current-category;
+                    changed-selection(sel) => {
+                        root.current-category = sel;
+                        root.current-item = -1;
+                        root.category-changes(sel);
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            ListView {
+                for item[index] in root.items: Rectangle {
+                    ListItem {
+                        name: item;
+                        selected: index == root.current-item;
+                        clicked => {
+                            root.current-item = index;
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 0;
+            HorizontalLayout {
+                spacing: 10px;
+                padding: 5px;
+
+                if !dirty:Button {
+                    text: "Create";
+                    clicked => {
+                        root.create-requested(root.current-category)
+                    }
+                }
+
+                if !dirty:Button {
+                    text: "Finish";
+                    enabled: root.current-item >= 0;
+                }
+
+                if dirty:Text {
+                    horizontal-alignment: center;
+                    text: "Cannot perform changes in repositories with pending changes";
+                    color: red;
+                }
+            }
+        }
+    }
+}

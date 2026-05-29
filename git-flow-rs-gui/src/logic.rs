@@ -166,10 +166,10 @@ pub fn spawn_start_flow(weak: Weak<App>, category: i32, name: String) {
         };
 
         let mut found = false;
-        if let Ok(branches) = branches {
-            if branches.contains(&name) {
-                found = true;
-            }
+        if let Ok(branches) = branches
+            && branches.contains(&name)
+        {
+            found = true;
         }
 
         let branches = match category {
@@ -179,10 +179,10 @@ pub fn spawn_start_flow(weak: Weak<App>, category: i32, name: String) {
             3 => GitWrapper::get_remote_hotfixes().await,
             _ => unreachable!(),
         };
-        if let Ok(branches) = branches {
-            if branches.contains(&name) {
-                found = true;
-            }
+        if let Ok(branches) = branches
+            && branches.contains(&name)
+        {
+            found = true;
         }
 
         weak.upgrade_in_event_loop(move |app| {

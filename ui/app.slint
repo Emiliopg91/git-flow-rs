@@ -5,6 +5,7 @@ import { NavBar } from "components/navbar.slint";
 import { MainMenu } from "components/main_menu.slint";
 import { CreatePopUp } from "components/create_popup.slint";
 import { ConsolePopUp } from "components/console_popup.slint";
+import { FinishPopup } from "components/finish_popup.slint";
 export component App inherits Window {
     width: 500px;
     height: 400px;
@@ -19,14 +20,17 @@ export component App inherits Window {
 
     in-out property <bool> show_console_dialog:false;
     in-out property <bool> show_start_dialog:false;
+    in-out property <bool> show_finish_dialog:false;
+    in-out property <int> item: -1;
 
     out property <int> category: 0;
 
     property <string> start_text: category == 0 ? "Enter feature name" : category == 1 ? "Enter hotfix name" : category == 2 ? "Enter bugfix name" : "Enter hotfix name";
 
     callback refresh_items(kind: int);
-    callback validate_name(kind: int, name: string);
-    callback check_existing(kind: int, branch: string);
+    callback start_flow(kind: int, name: string);
+    callback finish_flow(kind: int, name: string);
+    pure callback validate_name(name: string) -> bool;
 
     Rectangle {
         if root.show_start_dialog: CreatePopUp {
@@ -40,7 +44,24 @@ export component App inherits Window {
                 root.show_start_dialog = false;
             }
             on_confirm(name) => {
-                root.validate_name(root.category,name)
+                root.start_flow(root.category,name)
+            }
+            validate_name(name) => {
+                root.validate_name(name)
+            }
+        }
+
+        if root.show_finish_dialog: FinishPopup {
+            width: 100%;
+            height: 100%;
+            z: 100;
+            name: items[item];
+
+            on_close => {
+                root.show_finish_dialog = false;
+            }
+            on_confirm(name) => {
+                root.finish_flow(root.category,name)
             }
         }
 
@@ -62,12 +83,16 @@ export component App inherits Window {
             enabled: !root.show_start_dialog;
             items: items;
             current-category <=> category;
+            current-item <=> item;
             dirty: root.dirty;
-            category-changes(cat) => {
-                root.refresh_items(cat);
+            category-changes() => {
+                root.refresh_items(root.category);
             }
-            create-requested(category) => {
+            create-requested() => {
                 root.show_start_dialog = true;
+            }
+            finish-requested() => {
+                root.show_finish_dialog = true;
             }
         }
     }

@@ -1,5 +1,5 @@
 [package]
-name = "gtk-app"
+name = "git-flow-rs"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,8 +7,9 @@ edition = "2024"
 slint = "1"
 rfd = "0"
 fwkarq = "1"
-tokio = "1.52.3"
-git-flow-rs = { git = "https://github.com/Emiliopg91/git-flow-tui", package = "git-flow-rs-core" }
+tokio = "1"
+regex = "1"
+git-flow-rs-core = "1"
 
 [build-dependencies]
 slint-build = "1"

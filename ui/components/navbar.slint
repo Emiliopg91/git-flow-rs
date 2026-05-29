@@ -91,9 +91,9 @@ export component NavBar inherits Rectangle {
         }
     }
 
-    HorizontalLayout {
+    VerticalLayout {
         alignment: start;
-        horizontal-stretch: 0;
+        vertical-stretch: 0;
         padding: 0px;
         for item[index] in root.entries: NavBarItem {
             clicked => {

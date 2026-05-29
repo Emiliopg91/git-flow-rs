@@ -1,0 +1,43 @@
+import { PopUp } from "popup.slint";
+import { Button, LineEdit } from "std-widgets.slint";
+export component FinishPopup {
+    in property <string> name;
+
+    callback on_close();
+    callback on_confirm(name: string);
+
+    PopUp {
+        Dialog {
+            title: "Create";
+
+            VerticalLayout {
+                spacing: 10px;
+                Text {
+                    text: "Do you want to finish " + name + " flow?";
+                }
+
+                Rectangle {
+                    HorizontalLayout {
+                        spacing: 10px;
+
+                        Button {
+                            text: "Confirm";
+
+                            clicked => {
+                                root.on_confirm(name)
+                            }
+                        }
+
+                        Button {
+                            text: "Close";
+
+                            clicked => {
+                                on_close()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

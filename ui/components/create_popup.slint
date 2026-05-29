@@ -4,8 +4,13 @@ export component CreatePopUp {
     in-out property <string> name:"";
     in property <string> placeholder;
     in property <string> error: "";
+
+    property <string> last-valid: "";
+    property <bool> focused:false;
+
     callback on_close();
     callback on_confirm(name: string);
+    pure callback validate_name(name: string) -> bool;
 
     PopUp {
         Dialog {
@@ -15,9 +20,23 @@ export component CreatePopUp {
                 padding: 16px;
                 spacing: 10px;
 
-                LineEdit {
+                le := LineEdit {
                     placeholder-text: root.placeholder;
-                    text <=> root.name;
+                    text: root.name;
+
+                    edited(text) => {
+                        if text.is-empty || root.validate_name(text) {
+                            root.last-valid = text;
+                            root.name = text;
+                        } else {
+                            root.name = root.last-valid;
+                            self.text = root.last-valid;
+                        }
+                    }
+
+                    accepted(text) => {
+                        root.on_confirm(root.name)
+                    }
                 }
 
                 if root.error != "": Text {
@@ -29,14 +48,6 @@ export component CreatePopUp {
                     spacing: 10px;
 
                     Button {
-                        text: "Close";
-
-                        clicked => {
-                            on_close()
-                        }
-                    }
-
-                    Button {
                         text: "Confirm";
                         enabled: !root.name.is-empty;
 
@@ -44,8 +55,20 @@ export component CreatePopUp {
                             root.on_confirm(root.name)
                         }
                     }
+
+                    Button {
+                        text: "Close";
+
+                        clicked => {
+                            on_close()
+                        }
+                    }
                 }
             }
         }
+    }
+
+    init => {
+        le.focus()
     }
 }

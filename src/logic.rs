@@ -6,12 +6,16 @@ use std::{
 };
 
 use fwkarq::logger::{Logger, provider::Provider};
-use git_flow_rs::{
+use git_flow_rs_core::{
     git::GitWrapper,
     logic::{
-        bugfix::bugfix_start, feature::feature_start, hotfix::hotfix_start, release::release_start,
+        bugfix::{bugfix_finish, bugfix_start},
+        feature::{feature_finish, feature_start},
+        hotfix::{hotfix_finish, hotfix_start},
+        release::{release_finish, release_start},
     },
 };
+use regex::Regex;
 use rfd::AsyncFileDialog;
 use slint::{ComponentHandle, SharedString, Weak};
 
@@ -143,6 +147,7 @@ fn spawn_creation_process(app: Weak<App>, category: i32, name: String) {
 
         app.upgrade_in_event_loop(|app| {
             app.set_console_finished(true);
+            app.set_item(-1);
         })
         .unwrap();
 
@@ -150,7 +155,7 @@ fn spawn_creation_process(app: Weak<App>, category: i32, name: String) {
     });
 }
 
-pub fn spawn_validate_name(weak: Weak<App>, category: i32, name: String) {
+pub fn spawn_start_flow(weak: Weak<App>, category: i32, name: String) {
     tokio::spawn(async move {
         let branches = match category {
             0 => GitWrapper::get_features().await,
@@ -161,10 +166,10 @@ pub fn spawn_validate_name(weak: Weak<App>, category: i32, name: String) {
         };
 
         let mut found = false;
-        if let Ok(branches) = branches
-            && branches.contains(&name)
-        {
-            found = true;
+        if let Ok(branches) = branches {
+            if branches.contains(&name) {
+                found = true;
+            }
         }
 
         let branches = match category {
@@ -174,10 +179,10 @@ pub fn spawn_validate_name(weak: Weak<App>, category: i32, name: String) {
             3 => GitWrapper::get_remote_hotfixes().await,
             _ => unreachable!(),
         };
-        if let Ok(branches) = branches
-            && branches.contains(&name)
-        {
-            found = true;
+        if let Ok(branches) = branches {
+            if branches.contains(&name) {
+                found = true;
+            }
         }
 
         weak.upgrade_in_event_loop(move |app| {
@@ -190,5 +195,59 @@ pub fn spawn_validate_name(weak: Weak<App>, category: i32, name: String) {
             }
         })
         .unwrap();
+    });
+}
+
+pub fn validate_name(name: String) -> bool {
+    let re = Regex::new(r"^[a-zA-Z0-9_\-]+$").unwrap();
+    re.is_match(&name)
+}
+
+pub fn spawn_finish_flow(weak: Weak<App>, category: i32, name: String) {
+    weak.upgrade_in_event_loop(|app| {
+        app.set_show_finish_dialog(false);
+        app.set_show_console_dialog(true);
+    })
+    .unwrap();
+
+    let (tx, rx) = mpsc::channel();
+
+    tokio::spawn(async move {
+        let res = match category {
+            0 => feature_finish(&name, tx.clone()).await,
+            1 => release_finish(&name, tx.clone()).await,
+            2 => bugfix_finish(&name, tx.clone()).await,
+            3 => hotfix_finish(&name, tx.clone()).await,
+            _ => unreachable!(),
+        };
+
+        if let Err(e) = res {
+            let _ = tx.send(e.to_string());
+        }
+
+        drop(tx);
+    });
+
+    tokio::spawn(async move {
+        let mut lines: Vec<String> = Vec::new();
+        let logger = get_logger();
+
+        while let Ok(msg) = rx.recv() {
+            logger.info(&msg);
+            lines.push(msg);
+            let text = lines.join("\n");
+            weak.upgrade_in_event_loop(|app| {
+                app.set_console_text(SharedString::from(text));
+            })
+            .unwrap();
+        }
+
+        weak.upgrade_in_event_loop(|app| {
+            app.set_console_finished(true);
+            app.set_item(-1);
+        })
+        .unwrap();
+
+        spawn_refresh_items(weak, category);
     });
 }

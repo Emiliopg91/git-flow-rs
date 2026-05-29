@@ -1,0 +1,15 @@
+[package]
+name = "git-flow-rs-gui"
+version = "2.0.0"
+edition = "2024"
+
+[dependencies]
+slint = "1"
+rfd = "0"
+fwkarq = "1"
+tokio = "1"
+regex = "1"
+git-flow-rs-core = { path = "../git-flow-rs-core" }
+
+[build-dependencies]
+slint-build = "1"

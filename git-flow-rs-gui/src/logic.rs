@@ -191,6 +191,7 @@ pub fn spawn_start_flow(weak: Weak<App>, category: i32, name: String) {
             } else {
                 app.set_show_start_dialog(false);
                 app.set_show_console_dialog(true);
+                app.set_console_finished(false);
                 spawn_creation_process(app.as_weak(), category, name);
             }
         })
@@ -207,6 +208,7 @@ pub fn spawn_finish_flow(weak: Weak<App>, category: i32, name: String) {
     weak.upgrade_in_event_loop(|app| {
         app.set_show_finish_dialog(false);
         app.set_show_console_dialog(true);
+        app.set_console_finished(false);
     })
     .unwrap();
 

@@ -1,1 +1,2 @@
-/target
+target
+git-flow-rs-cli/tests/repo

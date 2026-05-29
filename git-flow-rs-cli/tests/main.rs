@@ -31,9 +31,9 @@ fn initialize() {
             .join("..")
             .join("target")
             .join("debug")
-            .join("git-flow-rs");
+            .join("git-flow-rs-cli");
 
-        let gf = gft.parent().unwrap().join("git-flow-rs");
+        let gf = gft.parent().unwrap().join("git-flow-rs-cli");
 
         gf.display().to_string()
     });

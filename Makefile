@@ -8,7 +8,7 @@ clean:
 	@cargo clean
 	@rm -Rf *.pkg.tar.zst git-flow-rs pkg src dist
 
-release: clean
+release: clean test
 	@python resources/scripts/release.py
 
 version:

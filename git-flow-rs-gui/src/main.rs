@@ -3,6 +3,7 @@ mod logic;
 use std::env;
 
 use git_flow_rs_core::git::GitWrapper;
+use slint::CloseRequestResponse;
 
 use crate::logic::{
     select_working_directory, spawn_finish_flow, spawn_refresh_items, spawn_start_flow,
@@ -17,9 +18,9 @@ async fn main() {
         std::env::remove_var("WAYLAND_DISPLAY");
     }
 
-    select_working_directory().await;
-
     let app = App::new().unwrap();
+
+    select_working_directory(app.as_weak().clone()).await;
 
     app.set_dirty(GitWrapper::has_changes().await.unwrap());
 
@@ -50,6 +51,17 @@ async fn main() {
     });
 
     app.on_validate_name(move |name| validate_name(name.to_string()));
+
+    let app_weak = app.as_weak();
+    app.window().on_close_requested(move || {
+        if let Some(app) = app_weak.upgrade() {
+            if app.get_show_console_dialog() && !app.get_console_finished() {
+                return CloseRequestResponse::KeepWindowShown;
+            }
+        }
+
+        CloseRequestResponse::HideWindow
+    });
 
     app.run().unwrap();
 }

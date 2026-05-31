@@ -6,18 +6,16 @@ import { MainMenu } from "components/main_menu.slint";
 import { CreatePopUp } from "components/create_popup.slint";
 import { ConsolePopUp } from "components/console_popup.slint";
 import { FinishPopup } from "components/finish_popup.slint";
+import { PopUp } from "components/popup.slint";
 export component App inherits Window {
-    width: 500px;
-    height: 400px;
-    title: "Git flow";
-    icon: @image-url("./icon.png");
-
+    in property <bool> not_a_repository:false;
+    in property <string> repository: "";
     in property <string> create-err: "";
     in property <[string]> items;
     in property <string> console_text: "";
-    in property <bool> console_finished:false;
     in property <bool> dirty:true;
 
+    in-out property <bool> console_finished:false;
     in-out property <bool> show_console_dialog:false;
     in-out property <bool> show_start_dialog:false;
     in-out property <bool> show_finish_dialog:false;
@@ -32,7 +30,21 @@ export component App inherits Window {
     callback finish_flow(kind: int, name: string);
     pure callback validate_name(name: string) -> bool;
 
-    Rectangle {
+    width: 500px;
+    height: root.not_a_repository ? 100px : 400px;
+    title: "Git flow @ " + root.repository;
+    icon: @image-url("./icon.png");
+
+    if root.not_a_repository: Rectangle {
+        width: 300px;
+        height: 150px;
+
+        Text {
+            text: "No repository found in " + root.repository;
+        }
+    }
+
+    if !root.not_a_repository: Rectangle {
         if root.show_start_dialog: CreatePopUp {
             width: 100%;
             height: 100%;

@@ -25,12 +25,29 @@ pub fn get_logger() -> Arc<Logger> {
     Provider::get_logger("App")
 }
 
-pub async fn select_working_directory() {
+pub async fn select_working_directory(weak: Weak<App>) {
     let mut repo_path = None;
-    let args: Vec<String> = std::env::args().collect();
     let logger = get_logger();
 
-    if args.len() == 1 {
+    let selection = std::env::args().nth(1);
+    if let Some(selection) = selection {
+        let dir = std::fs::canonicalize(&selection).unwrap();
+        let folder_2 = dir.to_path_buf();
+
+        weak.upgrade_in_event_loop(move |app| {
+            app.set_repository(SharedString::from(folder_2.display().to_string()));
+        })
+        .unwrap();
+
+        logger.info(format!("Selected {} by argument", dir.display()));
+
+        if verify_git_repository(&dir).await {
+            let _ = env::set_current_dir(&dir);
+            repo_path = Some(dir.to_path_buf());
+        } else {
+            logger.error(format!("Folder is not a repository {}", dir.display()));
+        }
+    } else {
         logger.info("Showing repository folder selector...");
         loop {
             let selection = AsyncFileDialog::new()
@@ -40,6 +57,13 @@ pub async fn select_working_directory() {
                 .await;
             match selection {
                 Some(folder) => {
+                    let folder_2 = folder.clone();
+                    weak.upgrade_in_event_loop(move |app| {
+                        app.set_repository(SharedString::from(
+                            folder_2.path().display().to_string(),
+                        ));
+                    })
+                    .unwrap();
                     logger.info(format!("Selected {}", folder.path().display()));
                     let dir = folder.path();
                     if verify_git_repository(dir).await {
@@ -54,21 +78,13 @@ pub async fn select_working_directory() {
                 }
             }
         }
-    } else {
-        let selection = args.get(1).unwrap().as_str();
-        let dir = Path::new(selection);
-        logger.info(format!("Selected {} by argument", dir.display()));
-        if verify_git_repository(dir).await {
-            let _ = env::set_current_dir(dir);
-            repo_path = Some(dir.to_path_buf());
-        } else {
-            logger.error(format!("Folder is not a repository {}", dir.display()));
-        }
     }
 
     if repo_path.is_none() {
-        logger.error("No git repository selected");
-        exit(1);
+        weak.upgrade_in_event_loop(|app| {
+            app.set_not_a_repository(true);
+        })
+        .unwrap()
     }
 }
 

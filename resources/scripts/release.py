@@ -1,14 +1,15 @@
 import os
 import shutil
 import subprocess
+from pathlib import Path
 
-PROJ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-CARGO_TOML_PATH = os.path.join(PROJ_DIR, "Cargo.toml")
-PKGBUILD_PATH = os.path.join(PROJ_DIR, "resources", "PKGBUILD")
-INSTALL_PATH = os.path.join(PROJ_DIR, "resources", "git-flow-tui.sh")
-DIST_DIR = os.path.join(PROJ_DIR, "dist")
-PKGBUILD_DIST_PATH = os.path.join(DIST_DIR, "PKGBUILD")
-INSTALL_DIST_PATH = os.path.join(DIST_DIR, "git-flow-tui.install")
+PROJ_DIR = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+CARGO_TOML_PATH = PROJ_DIR / "Cargo.toml"
+PKGBUILD_PATH = PROJ_DIR / "resources" / "PKGBUILD"
+INSTALL_PATH = PROJ_DIR / "resources" / "git-flow-rs-cli.sh"
+DIST_DIR = PROJ_DIR / "dist"
+PKGBUILD_DIST_PATH = PROJ_DIR / "dist" / "PKGBUILD"
+INSTALL_DIST_PATH = PROJ_DIR / "dist" / "git-flow-rs-cli.install"
 
 
 def generate_srcinfo():

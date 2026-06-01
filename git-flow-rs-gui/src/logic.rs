@@ -1,11 +1,6 @@
-use std::{
-    env,
-    path::Path,
-    process::exit,
-    sync::{Arc, mpsc},
-};
+use std::{env, path::Path, sync::mpsc};
 
-use fwkarq::logger::{Logger, provider::Provider};
+use fwkarq::*;
 use git_flow_rs_core::{
     git::GitWrapper,
     logic::{
@@ -21,13 +16,8 @@ use slint::{ComponentHandle, SharedString, Weak};
 
 use crate::App;
 
-pub fn get_logger() -> Arc<Logger> {
-    Provider::get_logger("App")
-}
-
 pub async fn select_working_directory(weak: Weak<App>) {
     let mut repo_path = None;
-    let logger = get_logger();
 
     let selection = std::env::args().nth(1);
     if let Some(selection) = selection {
@@ -39,16 +29,16 @@ pub async fn select_working_directory(weak: Weak<App>) {
         })
         .unwrap();
 
-        logger.info(format!("Selected {} by argument", dir.display()));
+        info!("App", "Selected {} by argument", dir.display());
 
         if verify_git_repository(&dir).await {
             let _ = env::set_current_dir(&dir);
             repo_path = Some(dir.to_path_buf());
         } else {
-            logger.error(format!("Folder is not a repository {}", dir.display()));
+            error!("App", "Folder is not a repository {}", dir.display());
         }
     } else {
-        logger.info("Showing repository folder selector...");
+        info!("App", "Showing repository folder selector...");
         loop {
             let selection = AsyncFileDialog::new()
                 .set_directory(env::current_dir().unwrap())
@@ -64,14 +54,14 @@ pub async fn select_working_directory(weak: Weak<App>) {
                         ));
                     })
                     .unwrap();
-                    logger.info(format!("Selected {}", folder.path().display()));
+                    info!("App", "Selected {}", folder.path().display());
                     let dir = folder.path();
                     if verify_git_repository(dir).await {
                         let _ = env::set_current_dir(dir);
                         repo_path = Some(dir.to_path_buf());
                         break;
                     }
-                    logger.error("Folder is not a repository");
+                    error!("App", "Folder is not a repository");
                 }
                 _ => {
                     break;
@@ -97,8 +87,6 @@ where
 
 pub fn spawn_refresh_items(weak: Weak<App>, category: i32) {
     tokio::spawn(async move {
-        let logger = get_logger();
-
         let res = match category {
             0 => GitWrapper::get_features().await,
             1 => GitWrapper::get_releases().await,
@@ -117,12 +105,12 @@ pub fn spawn_refresh_items(weak: Weak<App>, category: i32) {
                     ));
                     app.set_items(model);
                 }) {
-                    logger.error(format!("UI error: {}", e));
+                    error!("App", "UI error: {}", e);
                 }
             }
 
             Err(e) => {
-                logger.error(format!("Error fetching branches: {}", e));
+                error!("App", "Error fetching branches: {}", e);
             }
         }
     });
@@ -149,10 +137,9 @@ fn spawn_creation_process(app: Weak<App>, category: i32, name: String) {
 
     tokio::spawn(async move {
         let mut lines: Vec<String> = Vec::new();
-        let logger = get_logger();
 
         while let Ok(msg) = rx.recv() {
-            logger.info(&msg);
+            info!("App", "{}", &msg);
             lines.push(msg);
             let text = lines.join("\n");
             app.upgrade_in_event_loop(|app| {
@@ -248,10 +235,9 @@ pub fn spawn_finish_flow(weak: Weak<App>, category: i32, name: String) {
 
     tokio::spawn(async move {
         let mut lines: Vec<String> = Vec::new();
-        let logger = get_logger();
 
         while let Ok(msg) = rx.recv() {
-            logger.info(&msg);
+            info!("App", "{}", &msg);
             lines.push(msg);
             let text = lines.join("\n");
             weak.upgrade_in_event_loop(|app| {

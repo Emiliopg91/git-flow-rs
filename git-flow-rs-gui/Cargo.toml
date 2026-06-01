@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 slint = "1"
 rfd = "0"
-fwkarq = "1"
+fwkarq = { version = "1", features = ["macros"] }
 tokio = "1"
 regex = "1"
 git-flow-rs-core = { path = "../git-flow-rs-core" }

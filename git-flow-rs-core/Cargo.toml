@@ -1,6 +1,6 @@
 [package]
 name = "git-flow-rs-core"
-version = "2.2.1"
+version = "2.2.2"
 edition = "2024"
 description = "Git flow implementation enriched with business logic"
 license = "MIT OR Apache-2.0"

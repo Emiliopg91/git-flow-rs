@@ -1729,7 +1729,7 @@ dependencies = [
 
 [[package]]
 name = "git-flow-rs-cli"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "clap",
  "clap_complete",
@@ -1740,7 +1740,7 @@ dependencies = [
 
 [[package]]
 name = "git-flow-rs-core"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "fwkarq",
  "thiserror 2.0.18",
@@ -1748,7 +1748,7 @@ dependencies = [
 
 [[package]]
 name = "git-flow-rs-gui"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "fwkarq",
  "git-flow-rs-core",

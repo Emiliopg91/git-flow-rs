@@ -25,7 +25,7 @@ export component App inherits Window {
 
     out property <int> category: 0;
 
-    property <string> start_text: category == 0 ? "Enter feature name" : category == 1 ? "Enter hotfix name" : category == 2 ? "Enter bugfix name" : "Enter hotfix name";
+    property <string> start_text: category == 0 ? "Enter feature name" : category == 1 ? "Enter release name" : category == 2 ? "Enter bugfix name" : "Enter hotfix name";
 
     callback refresh_items(kind: int);
     callback start_flow(kind: int, name: string);

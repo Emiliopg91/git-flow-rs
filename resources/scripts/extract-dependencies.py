@@ -7,7 +7,7 @@ ROOT_DIR = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 BIN_DIR = ROOT_DIR / "target" / "release"
 BINARIES = []
 
-for bin_name in ["git-flow-rs-cli", "git-flow-rs-gui"]:
+for bin_name in ["git-flow-rs"]:
     path = BIN_DIR / bin_name
     if path.exists():
         BINARIES.append(path)

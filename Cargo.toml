@@ -2,7 +2,7 @@ version = "2.2.0"
 
 [workspace]
 resolver = "3"
-members = ["./git-flow-rs-cli", "./git-flow-rs-core", "./git-flow-rs-gui"]
+members = ["./git-flow-rs", "./git-flow-rs-core"]
 
 
 [profile.release]

@@ -1,8 +1,8 @@
 run_cli:
-	@cd git-flow-rs-cli && cargo run
+	@cd git-flow-rs && cargo run
 
 run_gui:
-	@cd git-flow-rs-gui && cargo run
+	@cd git-flow-rs && cargo run gui
 	
 clean:
 	@cargo clean

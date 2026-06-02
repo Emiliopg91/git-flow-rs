@@ -1,0 +1,18 @@
+[package]
+name = "git-flow-rs"
+version = "2.2.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
+slint = "1"
+rfd = "0"
+fwkarq = { version = "1", features = ["macros"] }
+tokio = "1"
+regex = "1"
+git-flow-rs-core = { path = "../git-flow-rs-core" }
+notify-rust = "4.17.0"
+
+[build-dependencies]
+slint-build = "1"

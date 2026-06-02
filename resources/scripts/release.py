@@ -6,10 +6,10 @@ from pathlib import Path
 PROJ_DIR = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 CARGO_TOML_PATH = PROJ_DIR / "Cargo.toml"
 PKGBUILD_PATH = PROJ_DIR / "resources" / "PKGBUILD"
-INSTALL_PATH = PROJ_DIR / "resources" / "git-flow-rs-cli.sh"
+INSTALL_PATH = PROJ_DIR / "resources" / "git-flow-rs.sh"
 DIST_DIR = PROJ_DIR / "dist"
 PKGBUILD_DIST_PATH = PROJ_DIR / "dist" / "PKGBUILD"
-INSTALL_DIST_PATH = PROJ_DIR / "dist" / "git-flow-rs-cli.install"
+INSTALL_DIST_PATH = PROJ_DIR / "dist" / "git-flow-rs.install"
 
 
 def generate_srcinfo():

@@ -1,4 +1,4 @@
-use std::{env, path::Path, sync::mpsc};
+use std::{env, path::Path, process::exit, sync::mpsc};
 
 use fwkarq::*;
 use git_flow_rs_core::{
@@ -47,6 +47,9 @@ pub async fn select_working_directory(weak: Weak<App>) {
                 .await;
             match selection {
                 Some(folder) => {
+                    if folder.path().display().to_string().is_empty() {
+                        continue;
+                    }
                     let folder_2 = folder.clone();
                     weak.upgrade_in_event_loop(move |app| {
                         app.set_repository(SharedString::from(
@@ -64,7 +67,8 @@ pub async fn select_working_directory(weak: Weak<App>) {
                     error!("App", "Folder is not a repository");
                 }
                 _ => {
-                    break;
+                    error!("App", "No folder selected");
+                    exit(1);
                 }
             }
         }
@@ -73,6 +77,23 @@ pub async fn select_working_directory(weak: Weak<App>) {
     if repo_path.is_none() {
         weak.upgrade_in_event_loop(|app| {
             app.set_not_a_repository(true);
+        })
+        .unwrap()
+    } else {
+        let _ = GitWrapper::fetch(true, true).await;
+        let has_changes = GitWrapper::has_changes().await.unwrap();
+        let develop_exists = GitWrapper::get_branches()
+            .await
+            .unwrap_or_default()
+            .contains(&"develop".to_string())
+            || GitWrapper::get_remote_branches()
+                .await
+                .unwrap_or_default()
+                .contains(&"develop".to_string());
+
+        weak.upgrade_in_event_loop(move |app| {
+            app.set_dirty(has_changes);
+            app.set_show_develop_dialog(!develop_exists);
         })
         .unwrap()
     }
@@ -155,6 +176,76 @@ fn spawn_creation_process(app: Weak<App>, category: i32, name: String) {
         .unwrap();
 
         spawn_refresh_items(app, category);
+    });
+}
+
+pub fn spawn_create_develop_branch(weak: Weak<App>) {
+    weak.upgrade_in_event_loop(move |app| {
+        app.set_show_console_dialog(true);
+        app.set_console_finished(false);
+    })
+    .unwrap();
+    let (tx, rx) = mpsc::channel();
+
+    tokio::spawn(async move {
+        let local_exists = GitWrapper::get_branches()
+            .await
+            .unwrap_or_default()
+            .contains(&"develop".to_string());
+
+        let remote_exists = GitWrapper::get_remote_branches()
+            .await
+            .unwrap_or_default()
+            .contains(&"develop".to_string());
+
+        if !local_exists {
+            if remote_exists {
+                let _ = tx.send("Checking out the develop branch...".to_string());
+                if let Err(e) = GitWrapper::checkout("develop").await {
+                    let _ = tx.send(format!("Failed to check out the develop branch: {}", e));
+                    return;
+                }
+                let _ = tx.send("  Checked out develop branch".to_string());
+            } else {
+                let _ = tx.send("Creating local develop branch...".to_string());
+                if let Err(e) = GitWrapper::create_branch("develop").await {
+                    let _ = tx.send(format!("Error creating develop branch: {}", e));
+                    return;
+                }
+                let _ = tx.send("  Local develop branch created".to_string());
+            }
+        }
+
+        if !remote_exists {
+            let _ = tx.send("Pushing to remote...".to_string());
+
+            if let Err(e) = GitWrapper::push().await {
+                let _ = tx.send(format!("Error pushing develop to remote: {}", e));
+            } else {
+                let _ = tx.send("  Remote branch develop pushed succesfully".to_string());
+            }
+        }
+
+        let _ = tx.send("Process finished succesfully".into());
+        drop(tx);
+    });
+
+    tokio::spawn(async move {
+        let mut lines = Vec::new();
+        while let Ok(msg) = rx.recv() {
+            info!("App", "{}", msg);
+            lines.push(msg);
+            let text = lines.join("\n");
+            weak.upgrade_in_event_loop(|app| {
+                app.set_console_text(SharedString::from(text));
+            })
+            .unwrap();
+        }
+
+        weak.upgrade_in_event_loop(|app| {
+            app.set_console_finished(true);
+            app.set_show_develop_dialog(false)
+        })
     });
 }
 

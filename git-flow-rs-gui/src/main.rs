@@ -1,13 +1,13 @@
 mod logic;
 
-use std::env;
+use std::{env, process::exit};
 
 use git_flow_rs_core::git::GitWrapper;
 use slint::CloseRequestResponse;
 
 use crate::logic::{
-    select_working_directory, spawn_finish_flow, spawn_refresh_items, spawn_start_flow,
-    validate_name,
+    select_working_directory, spawn_create_develop_branch, spawn_finish_flow, spawn_refresh_items,
+    spawn_start_flow, validate_name,
 };
 
 slint::include_modules!();
@@ -22,8 +22,6 @@ async fn main() {
 
     select_working_directory(app.as_weak().clone()).await;
 
-    app.set_dirty(GitWrapper::has_changes().await.unwrap());
-
     spawn_refresh_items(app.as_weak().clone(), app.get_category());
     app.on_refresh_items({
         let weak = app.as_weak();
@@ -31,6 +29,14 @@ async fn main() {
         move |category| {
             let weak = weak.clone();
             spawn_refresh_items(weak, category);
+        }
+    });
+
+    app.on_create_develop_branch({
+        let weak = app.as_weak();
+        move || {
+            let weak = weak.clone();
+            spawn_create_develop_branch(weak);
         }
     });
 
@@ -61,6 +67,10 @@ async fn main() {
         }
 
         CloseRequestResponse::HideWindow
+    });
+
+    app.on_quit_application(|| {
+        exit(2);
     });
 
     app.run().unwrap();

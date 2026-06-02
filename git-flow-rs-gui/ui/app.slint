@@ -7,6 +7,7 @@ import { CreatePopUp } from "components/create_popup.slint";
 import { ConsolePopUp } from "components/console_popup.slint";
 import { FinishPopup } from "components/finish_popup.slint";
 import { PopUp } from "components/popup.slint";
+import { DevelopPopup } from "components/develop_popup.slint";
 export component App inherits Window {
     in property <bool> not_a_repository:false;
     in property <string> repository: "";
@@ -16,6 +17,7 @@ export component App inherits Window {
     in property <bool> dirty:true;
 
     in-out property <bool> console_finished:false;
+    in-out property <bool> show_develop_dialog:true;
     in-out property <bool> show_console_dialog:false;
     in-out property <bool> show_start_dialog:false;
     in-out property <bool> show_finish_dialog:false;
@@ -28,6 +30,8 @@ export component App inherits Window {
     callback refresh_items(kind: int);
     callback start_flow(kind: int, name: string);
     callback finish_flow(kind: int, name: string);
+    callback create_develop_branch();
+    callback quit_application();
     pure callback validate_name(name: string) -> bool;
 
     width: 500px;
@@ -45,6 +49,19 @@ export component App inherits Window {
     }
 
     if !root.not_a_repository: Rectangle {
+        if root.show_develop_dialog: DevelopPopup {
+            width: 100%;
+            height: 100%;
+            z: 100;
+
+            on_close => {
+                root.quit_application();
+            }
+            on_confirm() => {
+                root.create_develop_branch()
+            }
+        }
+
         if root.show_start_dialog: CreatePopUp {
             width: 100%;
             height: 100%;

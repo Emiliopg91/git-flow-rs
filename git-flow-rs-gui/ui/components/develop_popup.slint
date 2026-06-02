@@ -1,0 +1,45 @@
+import { PopUp } from "popup.slint";
+import { Button, LineEdit } from "std-widgets.slint";
+export component DevelopPopup {
+    callback on_close();
+    callback on_confirm();
+
+    PopUp {
+        Dialog {
+            title: "Missing develop branch";
+
+            VerticalLayout {
+                spacing: 10px;
+                Text {
+                    text: "Develop branch does not exists";
+                }
+
+                Text {
+                    text: "Do you want to create it and push it to remote?";
+                }
+
+                Rectangle {
+                    HorizontalLayout {
+                        spacing: 10px;
+
+                        Button {
+                            text: "Create branch";
+
+                            clicked => {
+                                root.on_confirm()
+                            }
+                        }
+
+                        Button {
+                            text: "Exit";
+
+                            clicked => {
+                                on_close()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

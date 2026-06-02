@@ -6,7 +6,7 @@ run_gui:
 	
 clean:
 	@cargo clean
-	@rm -Rf *.pkg.tar.zst git-flow-rs pkg src dist
+	@rm -Rf *.pkg.tar.zst pkg src dist
 
 release: clean test
 	@python resources/scripts/release.py

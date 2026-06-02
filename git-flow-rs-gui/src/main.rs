@@ -2,7 +2,6 @@ mod logic;
 
 use std::{env, process::exit};
 
-use git_flow_rs_core::git::GitWrapper;
 use slint::CloseRequestResponse;
 
 use crate::logic::{

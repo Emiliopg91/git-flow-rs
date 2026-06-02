@@ -32,7 +32,7 @@ install=git-flow-rs.install
 
 build() {
   cd "$srcdir/${pkgname}"
-  cargo build --release --locked --workspace
+  cargo build --release --workspace
 }
 
 package() {

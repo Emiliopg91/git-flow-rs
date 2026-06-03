@@ -1,4 +1,4 @@
-use std::{process::exit, sync::mpsc};
+use std::process::exit;
 
 use fwkarq::logger::{level::Level, provider::Provider};
 use git_flow_rs_core::logic::{
@@ -7,13 +7,14 @@ use git_flow_rs_core::logic::{
     hotfix::{hotfix_finish, hotfix_start},
     release::{release_finish, release_start},
 };
+use tokio::sync::mpsc;
 
 use crate::{Action, Commands};
 
 pub async fn cli_fn(command: Commands) {
     Provider::set_level(Level::WARNING);
 
-    let (tx, rx) = mpsc::channel::<String>();
+    let (tx, mut rx) = mpsc::channel::<String>(100);
 
     let worker = tokio::spawn(async move {
         let result = match command {
@@ -36,13 +37,13 @@ pub async fn cli_fn(command: Commands) {
             _ => unreachable!(),
         };
         if let Err(e) = result {
-            tx.send(format!("{}", e)).unwrap();
+            tx.send(format!("{}", e)).await.unwrap();
             exit(1);
         }
     });
 
     loop {
-        while let Ok(msg) = rx.try_recv() {
+        while let Some(msg) = rx.recv().await {
             println!("{}", msg);
         }
         if worker.is_finished() {

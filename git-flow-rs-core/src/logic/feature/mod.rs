@@ -1,9 +1,8 @@
-use std::sync::mpsc::Sender;
-
 use super::{
     errors::PipelineError,
     pipeline::{Pipeline, Precondition, Step},
 };
+use tokio::sync::mpsc::Sender;
 
 pub async fn feature_start(name: &str, sender: Sender<String>) -> Result<(), PipelineError> {
     let branch = format!("feature/{}", name);

@@ -1,5 +1,3 @@
-use std::sync::mpsc::Sender;
-
 use crate::{
     git::GitWrapper,
     logic::{
@@ -7,6 +5,7 @@ use crate::{
         pipeline::{Pipeline, Precondition, Step},
     },
 };
+use tokio::sync::mpsc::Sender;
 
 pub async fn hotfix_start(name: &str, sender: Sender<String>) -> Result<(), PipelineError> {
     let branch = format!("hotfix/{}", name);

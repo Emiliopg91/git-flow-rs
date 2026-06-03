@@ -1,4 +1,6 @@
-use std::{sync::mpsc::Sender, time::Instant};
+use std::time::Instant;
+
+use tokio::sync::mpsc::Sender;
 
 use crate::git::GitWrapper;
 

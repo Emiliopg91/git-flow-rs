@@ -1,4 +1,4 @@
-use std::{env, path::Path, process::exit, sync::mpsc};
+use std::{env, path::Path, process::exit};
 
 use fwkarq::*;
 use git_flow_rs_core::{
@@ -14,6 +14,7 @@ use notify_rust::Notification;
 use regex::Regex;
 use rfd::AsyncFileDialog;
 use slint::{ComponentHandle, SharedString, Weak};
+use tokio::sync::mpsc;
 
 use crate::gui::App;
 
@@ -145,7 +146,7 @@ pub fn spawn_refresh_items(weak: Weak<App>, category: i32) {
 }
 
 fn spawn_creation_process(app: Weak<App>, category: i32, name: String) {
-    let (tx, rx) = mpsc::channel();
+    let (tx, mut rx) = mpsc::channel(100);
 
     tokio::spawn(async move {
         let res = match category {
@@ -166,7 +167,7 @@ fn spawn_creation_process(app: Weak<App>, category: i32, name: String) {
     tokio::spawn(async move {
         let mut lines: Vec<String> = Vec::new();
 
-        while let Ok(msg) = rx.recv() {
+        while let Some(msg) = rx.recv().await {
             info!("App", "{}", &msg);
             lines.push(msg);
             let text = lines.join("\n");
@@ -192,7 +193,7 @@ pub fn spawn_create_develop_branch(weak: Weak<App>) {
         app.set_console_finished(false);
     })
     .unwrap();
-    let (tx, rx) = mpsc::channel();
+    let (tx, mut rx) = mpsc::channel(100);
 
     tokio::spawn(async move {
         let local_exists = GitWrapper::get_branches()
@@ -239,7 +240,7 @@ pub fn spawn_create_develop_branch(weak: Weak<App>) {
 
     tokio::spawn(async move {
         let mut lines = Vec::new();
-        while let Ok(msg) = rx.recv() {
+        while let Some(msg) = rx.recv().await {
             info!("App", "{}", msg);
             lines.push(msg);
             let text = lines.join("\n");
@@ -313,7 +314,7 @@ pub fn spawn_finish_flow(weak: Weak<App>, category: i32, name: String) {
     })
     .unwrap();
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, mut rx) = mpsc::channel(100);
 
     tokio::spawn(async move {
         let res = match category {
@@ -334,7 +335,7 @@ pub fn spawn_finish_flow(weak: Weak<App>, category: i32, name: String) {
     tokio::spawn(async move {
         let mut lines: Vec<String> = Vec::new();
 
-        while let Ok(msg) = rx.recv() {
+        while let Some(msg) = rx.recv().await {
             info!("App", "{}", &msg);
             lines.push(msg);
             let text = lines.join("\n");

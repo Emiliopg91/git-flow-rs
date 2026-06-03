@@ -51,7 +51,7 @@ impl Pipeline {
     pub async fn run(&self) -> Result<(), PipelineError> {
         let t0 = Instant::now();
 
-        Self::send(&self.sender, "  Starting pipeline");
+        Self::send(&self.sender, "  Starting pipeline").await;
         for precondition in &self.requires {
             match Self::execute_precondition(precondition, &self.sender).await {
                 Ok(_) => continue,
@@ -77,13 +77,14 @@ impl Pipeline {
                 "  Pipeline finished after {:.3}",
                 t0.elapsed().as_secs_f64()
             ),
-        );
+        )
+        .await;
 
         Ok(())
     }
 
-    fn send(sender: &Sender<String>, msg: &str) {
-        let _ = sender.send(msg.to_string());
+    async fn send(sender: &Sender<String>, msg: &str) {
+        let _ = sender.send(msg.to_string()).await;
     }
 
     async fn execute_precondition(
@@ -95,7 +96,8 @@ impl Pipeline {
                 Self::send(
                     sender,
                     &format!("    Checking if branch is missing {}", branch),
-                );
+                )
+                .await;
                 let local = GitWrapper::get_branches().await.map_err(|e| {
                     PipelineError::PreconditionFailed(
                         "Could not get local branches".to_string(),
@@ -119,7 +121,7 @@ impl Pipeline {
                 Ok(())
             }
             Precondition::RequiresExistingLocalBranch(branch) => {
-                Self::send(sender, &format!("    Checking branch {} exists", branch));
+                Self::send(sender, &format!("    Checking branch {} exists", branch)).await;
                 let local = GitWrapper::get_branches().await.map_err(|e| {
                     PipelineError::PreconditionFailed(
                         "Could not get local branches".to_string(),
@@ -140,33 +142,33 @@ impl Pipeline {
     async fn execute_step(step: &Step, sender: &Sender<String>) -> Result<(), PipelineError> {
         match step {
             Step::CreateBranch(branch) => {
-                Self::send(sender, &format!("    Creating branch {}", branch));
+                Self::send(sender, &format!("    Creating branch {}", branch)).await;
                 GitWrapper::create_branch(branch)
                     .await
                     .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?;
             }
             Step::Checkout(branch) => {
                 if GitWrapper::get_branch().await != *branch {
-                    Self::send(sender, &format!("    Checking out {} branch", branch));
+                    Self::send(sender, &format!("    Checking out {} branch", branch)).await;
                     GitWrapper::checkout(branch)
                         .await
                         .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?;
                 }
             }
             Step::Commit(message) => {
-                Self::send(sender, &format!("    Creating commit '{}'", message));
+                Self::send(sender, &format!("    Creating commit '{}'", message)).await;
                 GitWrapper::commit(message)
                     .await
                     .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?;
             }
             Step::DeleteBranch(branch) => {
-                Self::send(sender, &format!("    Deleting {} branch", branch));
+                Self::send(sender, &format!("    Deleting {} branch", branch)).await;
                 GitWrapper::delete_branch(branch)
                     .await
                     .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?;
             }
             Step::Merge(branch) => {
-                Self::send(sender, &format!("    Merging {} branch", branch));
+                Self::send(sender, &format!("    Merging {} branch", branch)).await;
                 GitWrapper::merge(branch)
                     .await
                     .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?;
@@ -177,26 +179,26 @@ impl Pipeline {
                     .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?
                     .contains(&GitWrapper::get_branch().await)
                 {
-                    Self::send(sender, "    Pulling from remote");
+                    Self::send(sender, "    Pulling from remote").await;
                     GitWrapper::pull()
                         .await
                         .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?;
                 }
             }
             Step::Push() => {
-                Self::send(sender, "    Push to remote");
+                Self::send(sender, "    Push to remote").await;
                 GitWrapper::push()
                     .await
                     .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?;
             }
             Step::PushTags() => {
-                Self::send(sender, "    Push tags to remote");
+                Self::send(sender, "    Push tags to remote").await;
                 GitWrapper::push_tags()
                     .await
                     .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?;
             }
             Step::Tag(tag) => {
-                Self::send(sender, &format!("    Creating tag {}", tag));
+                Self::send(sender, &format!("    Creating tag {}", tag)).await;
                 GitWrapper::tag(tag)
                     .await
                     .map_err(|e| PipelineError::ExecutionFailed(e.to_string()))?;

@@ -39,4 +39,10 @@ pub enum GitError {
 
     #[error("Could not fetch remotes:\n  {0}")]
     FetchFailed(ShellError),
+
+    #[error("Could not get remote URL:\n  {0}")]
+    RemoteUrlFailed(ShellError),
+
+    #[error("No repository found in {0}:\n  {1}")]
+    NotARepository(String, ShellError),
 }

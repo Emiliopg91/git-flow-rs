@@ -1,6 +1,6 @@
 pub mod errors;
 
-use std::{ffi::OsStr, path::Path};
+use std::{env, ffi::OsStr};
 
 use fwkarq::shell::{Shell, ShellOutput};
 
@@ -25,20 +25,6 @@ where
 }
 
 impl GitWrapper {
-    pub async fn check_if_repository<P>(path: P) -> bool
-    where
-        P: AsRef<Path>,
-    {
-        let res = Shell::command("git")
-            .unwrap()
-            .cwd(path)
-            .args(["status"])
-            .run(true)
-            .await;
-
-        res.is_ok()
-    }
-
     pub async fn has_changes() -> Result<bool, GitError> {
         Ok(!run_shell_command("git", ["status", "--porcelain"], true)
             .await
@@ -300,5 +286,31 @@ impl GitWrapper {
             &branches,
             &"hotfix".to_string(),
         ))
+    }
+
+    pub async fn get_origin() -> Result<Option<String>, GitError> {
+        let output = run_shell_command("git", ["remote", "-v"], true)
+            .await
+            .map_err(GitError::RemoteUrlFailed)
+            .unwrap();
+
+        Ok(output.stdout.lines().find_map(|l| {
+            if !l.starts_with("origin") {
+                None
+            } else {
+                Some(l[7..].split(' ').rev().nth(1).unwrap().to_string())
+            }
+        }))
+    }
+
+    pub async fn get_repo_path() -> Result<String, GitError> {
+        let output = run_shell_command("git", ["rev-parse", "--show-toplevel"], true)
+            .await
+            .map_err(|e| {
+                GitError::NotARepository(env::current_dir().unwrap().display().to_string(), e)
+            })
+            .unwrap();
+
+        Ok(output.stdout.trim().to_string())
     }
 }

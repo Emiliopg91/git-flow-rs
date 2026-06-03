@@ -1,4 +1,4 @@
-use std::{env, path::Path, process::exit};
+use std::{env, process::exit};
 
 use fwkarq::*;
 use git_flow_rs_core::{
@@ -23,18 +23,12 @@ pub async fn select_working_directory(weak: Weak<App>, path: Option<String>) {
 
     if let Some(selection) = path {
         let dir = std::fs::canonicalize(&selection).unwrap();
-        let folder_2 = dir.to_path_buf();
-
-        weak.upgrade_in_event_loop(move |app| {
-            app.set_repository(SharedString::from(folder_2.display().to_string()));
-        })
-        .unwrap();
 
         info!("App", "Selected {} by argument", dir.display());
+        let _ = env::set_current_dir(&dir);
 
-        if verify_git_repository(&dir).await {
-            let _ = env::set_current_dir(&dir);
-            repo_path = Some(dir.to_path_buf());
+        if let Ok(rp) = GitWrapper::get_repo_path().await {
+            repo_path = Some(rp);
         } else {
             error!("App", "Folder is not a repository {}", dir.display());
         }
@@ -51,21 +45,17 @@ pub async fn select_working_directory(weak: Weak<App>, path: Option<String>) {
                     if folder.path().display().to_string().is_empty() {
                         continue;
                     }
-                    let folder_2 = folder.clone();
-                    weak.upgrade_in_event_loop(move |app| {
-                        app.set_repository(SharedString::from(
-                            folder_2.path().display().to_string(),
-                        ));
-                    })
-                    .unwrap();
                     info!("App", "Selected {}", folder.path().display());
+
                     let dir = folder.path();
-                    if verify_git_repository(dir).await {
-                        let _ = env::set_current_dir(dir);
-                        repo_path = Some(dir.to_path_buf());
+                    let _ = env::set_current_dir(&dir);
+
+                    if let Ok(rp) = GitWrapper::get_repo_path().await {
+                        repo_path = Some(rp);
                         break;
+                    } else {
+                        error!("App", "Folder is not a repository {}", dir.display());
                     }
-                    error!("App", "Folder is not a repository");
                 }
                 _ => {
                     error!("App", "No folder selected");
@@ -75,43 +65,65 @@ pub async fn select_working_directory(weak: Weak<App>, path: Option<String>) {
         }
     }
 
-    if repo_path.is_none() {
-        weak.upgrade_in_event_loop(|app| {
-            app.set_not_a_repository(true);
-        })
-        .unwrap()
-    } else {
-        let _ = Notification::new()
-            .summary("Refreshing repository")
-            .body("Please wait while refreshing the repository. This may lasts many seconds.")
-            .icon("git-flow-gui")
-            .timeout(3000)
-            .show_async()
-            .await;
-        let _ = GitWrapper::fetch(true, true).await;
-        let has_changes = GitWrapper::has_changes().await.unwrap();
-        let develop_exists = GitWrapper::get_branches()
-            .await
-            .unwrap_or_default()
-            .contains(&"develop".to_string())
-            || GitWrapper::get_remote_branches()
-                .await
-                .unwrap_or_default()
-                .contains(&"develop".to_string());
+    let mut not_repository_state = false;
+    let mut repo_state = "".to_string();
+    let mut has_changes_state = false;
+    let mut develop_exists_state = true;
 
-        weak.upgrade_in_event_loop(move |app| {
-            app.set_dirty(has_changes);
-            app.set_show_develop_dialog(!develop_exists);
-        })
-        .unwrap()
+    if let Some(repo_path) = repo_path {
+        not_repository_state = false;
+        repo_state = repo_path.clone();
+        info!("App", "Repository root: {}", repo_state);
+
+        env::set_current_dir(repo_path).unwrap();
+        if let Ok(origin) = GitWrapper::get_origin().await
+            && let Some(mut origin) = origin
+        {
+            info!("App", "Origin URL: {}", origin);
+            origin = origin.to_lowercase();
+            if origin.starts_with("http://") || origin.starts_with("https://") {
+                error!("App", "Not allowed HTTP/S repositories");
+            } else {
+                let _ = Notification::new()
+                    .summary("Refreshing repository")
+                    .body(
+                        "Please wait while refreshing the repository. This may lasts many seconds.",
+                    )
+                    .icon("git-flow-gui")
+                    .timeout(3000)
+                    .show_async()
+                    .await;
+
+                info!("App", "Fetching from remote...");
+                let _ = GitWrapper::fetch(true, true).await;
+
+                has_changes_state = GitWrapper::has_changes().await.unwrap();
+                info!(
+                    "App",
+                    "Repository state: {}",
+                    if has_changes_state { "dirty" } else { "clean" }
+                );
+
+                develop_exists_state = GitWrapper::get_branches()
+                    .await
+                    .unwrap_or_default()
+                    .contains(&"develop".to_string())
+                    && GitWrapper::get_remote_branches()
+                        .await
+                        .unwrap_or_default()
+                        .contains(&"develop".to_string());
+                info!("App", "Branch develop exists: {}", develop_exists_state);
+            }
+        }
     }
-}
 
-pub async fn verify_git_repository<P>(dir: P) -> bool
-where
-    P: AsRef<Path>,
-{
-    GitWrapper::check_if_repository(dir).await
+    weak.upgrade_in_event_loop(move |app| {
+        app.set_not_a_repository(not_repository_state);
+        app.set_repository(SharedString::from(repo_state));
+        app.set_dirty(has_changes_state);
+        app.set_show_develop_dialog(!develop_exists_state);
+    })
+    .unwrap();
 }
 
 pub fn spawn_refresh_items(weak: Weak<App>, category: i32) {
@@ -158,7 +170,7 @@ fn spawn_creation_process(app: Weak<App>, category: i32, name: String) {
         };
 
         if let Err(e) = res {
-            let _ = tx.send(e.to_string());
+            let _ = tx.send(e.to_string()).await;
         }
 
         drop(tx);
@@ -208,33 +220,43 @@ pub fn spawn_create_develop_branch(weak: Weak<App>) {
 
         if !local_exists {
             if remote_exists {
-                let _ = tx.send("Checking out the develop branch...".to_string());
+                let _ = tx
+                    .send("Checking out the develop branch...".to_string())
+                    .await;
                 if let Err(e) = GitWrapper::checkout("develop").await {
                     let _ = tx.send(format!("Failed to check out the develop branch: {}", e));
                     return;
                 }
-                let _ = tx.send("  Checked out develop branch".to_string());
+                let _ = tx.send("  Checked out develop branch".to_string()).await;
             } else {
-                let _ = tx.send("Creating local develop branch...".to_string());
+                let _ = tx
+                    .send("Creating local develop branch...".to_string())
+                    .await;
                 if let Err(e) = GitWrapper::create_branch("develop").await {
-                    let _ = tx.send(format!("Error creating develop branch: {}", e));
+                    let _ = tx
+                        .send(format!("Error creating develop branch: {}", e))
+                        .await;
                     return;
                 }
-                let _ = tx.send("  Local develop branch created".to_string());
+                let _ = tx.send("  Local develop branch created".to_string()).await;
             }
         }
 
         if !remote_exists {
-            let _ = tx.send("Pushing to remote...".to_string());
+            let _ = tx.send("Pushing to remote...".to_string()).await;
 
             if let Err(e) = GitWrapper::push().await {
-                let _ = tx.send(format!("Error pushing develop to remote: {}", e));
+                let _ = tx
+                    .send(format!("Error pushing develop to remote: {}", e))
+                    .await;
             } else {
-                let _ = tx.send("  Remote branch develop pushed succesfully".to_string());
+                let _ = tx
+                    .send("  Remote branch develop pushed succesfully".to_string())
+                    .await;
             }
         }
 
-        let _ = tx.send("Process finished succesfully".into());
+        let _ = tx.send("Process finished succesfully".into()).await;
         drop(tx);
     });
 
@@ -326,7 +348,7 @@ pub fn spawn_finish_flow(weak: Weak<App>, category: i32, name: String) {
         };
 
         if let Err(e) = res {
-            let _ = tx.send(e.to_string());
+            let _ = tx.send(e.to_string()).await;
         }
 
         drop(tx);

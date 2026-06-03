@@ -7,11 +7,11 @@ use super::{
 
 pub async fn bugfix_start(name: &str, sender: Sender<String>) -> Result<(), PipelineError> {
     let branch = format!("bugfix/{}", name);
-    let send = |msg: &str| {
-        let _ = sender.send(msg.into());
+    let send = async |msg: &str| {
+        let _ = sender.send(msg.into()).await;
     };
 
-    send(&format!("Starting creation of bugfix {}...", name));
+    send(&format!("Starting creation of bugfix {}...", name)).await;
 
     Pipeline::new(sender.clone())
         .requires(Precondition::RequiresMissingBranch(branch.clone()))
@@ -21,18 +21,18 @@ pub async fn bugfix_start(name: &str, sender: Sender<String>) -> Result<(), Pipe
         .run()
         .await?;
 
-    send("Bugfix started succesfully");
+    send("Bugfix started succesfully").await;
 
     Ok(())
 }
 
 pub async fn bugfix_finish(name: &str, sender: Sender<String>) -> Result<(), PipelineError> {
     let branch = format!("bugfix/{}", name);
-    let send = |msg: &str| {
-        let _ = sender.send(msg.into());
+    let send = async |msg: &str| {
+        let _ = sender.send(msg.into()).await;
     };
 
-    send(&format!("Finishing bugfix {}...", name));
+    send(&format!("Finishing bugfix {}...", name)).await;
 
     Pipeline::new(sender.clone())
         .requires(Precondition::RequiresExistingLocalBranch(branch.clone()))
@@ -48,7 +48,7 @@ pub async fn bugfix_finish(name: &str, sender: Sender<String>) -> Result<(), Pip
         .run()
         .await?;
 
-    send("Bugfix finished succesfully");
+    send("Bugfix finished succesfully").await;
 
     Ok(())
 }

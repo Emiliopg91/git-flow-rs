@@ -10,6 +10,7 @@ import { PopUp } from "components/popup.slint";
 import { DevelopPopup } from "components/develop_popup.slint";
 export component App inherits Window {
     in property <bool> not_a_repository:false;
+    in property <bool> not_ssh:false;
     in property <string> repository: "";
     in property <string> create-err: "";
     in property <[string]> items;
@@ -17,7 +18,7 @@ export component App inherits Window {
     in property <bool> dirty:true;
 
     in-out property <bool> console_finished:false;
-    in-out property <bool> show_develop_dialog:true;
+    in-out property <bool> show_develop_dialog:false;
     in-out property <bool> show_console_dialog:false;
     in-out property <bool> show_start_dialog:false;
     in-out property <bool> show_finish_dialog:false;
@@ -35,7 +36,7 @@ export component App inherits Window {
     pure callback validate_name(name: string) -> bool;
 
     width: 500px;
-    height: root.not_a_repository ? 100px : 400px;
+    height: root.not_a_repository || root.not_ssh ? 100px : 450px;
     title: "Git flow @ " + root.repository;
     icon: @image-url("../../resources/assets/icon.png");
 
@@ -48,80 +49,91 @@ export component App inherits Window {
         }
     }
 
-    if !root.not_a_repository: Rectangle {
-        if root.show_develop_dialog: DevelopPopup {
-            width: 100%;
-            height: 100%;
-            z: 100;
+    if root.not_ssh: Rectangle {
+        width: 300px;
+        height: 150px;
 
-            on_close => {
-                root.quit_application();
-            }
-            on_confirm() => {
-                root.create_develop_branch()
-            }
+        Text {
+            text: "Due to security reasons, only repositories with SSH remotes are allowed";
         }
+    }
 
-        if root.show_start_dialog: CreatePopUp {
-            width: 100%;
-            height: 100%;
-            z: 100;
-            placeholder: start_text;
-            error: root.create-err;
+    if !root.not_ssh: Rectangle {
+        if !root.not_a_repository: Rectangle {
+            if root.show_develop_dialog: DevelopPopup {
+                width: 100%;
+                height: 100%;
+                z: 100;
 
-            on_close => {
-                root.show_start_dialog = false;
+                on_close => {
+                    root.quit_application();
+                }
+                on_confirm() => {
+                    root.create_develop_branch()
+                }
             }
-            on_confirm(name) => {
-                root.start_flow(root.category,name)
-            }
-            validate_name(name) => {
-                root.validate_name(name)
-            }
-        }
 
-        if root.show_finish_dialog: FinishPopup {
-            width: 100%;
-            height: 100%;
-            z: 100;
-            name: items[item];
+            if root.show_start_dialog: CreatePopUp {
+                width: 100%;
+                height: 100%;
+                z: 100;
+                placeholder: start_text;
+                error: root.create-err;
 
-            on_close => {
-                root.show_finish_dialog = false;
+                on_close => {
+                    root.show_start_dialog = false;
+                }
+                on_confirm(name) => {
+                    root.start_flow(root.category,name)
+                }
+                validate_name(name) => {
+                    root.validate_name(name)
+                }
             }
-            on_confirm(name) => {
-                root.finish_flow(root.category,name)
-            }
-        }
 
-        if root.show_console_dialog: ConsolePopUp {
-            width: 100%;
-            height: 100%;
-            z: 100;
-            body: root.console_text;
-            finished: root.console_finished;
+            if root.show_finish_dialog: FinishPopup {
+                width: 100%;
+                height: 100%;
+                z: 100;
+                name: items[item];
 
-            on_close => {
-                root.show_console_dialog = false;
+                on_close => {
+                    root.show_finish_dialog = false;
+                }
+                on_confirm(name) => {
+                    root.finish_flow(root.category,name)
+                }
             }
-        }
 
-        mm := MainMenu {
-            width: 100%;
-            height: 100%;
-            enabled: !root.show_start_dialog;
-            items: items;
-            current-category <=> category;
-            current-item <=> item;
-            dirty: root.dirty;
-            category-changes() => {
-                root.refresh_items(root.category);
+            if root.show_console_dialog: ConsolePopUp {
+                width: 100%;
+                height: 100%;
+                z: 100;
+                body: root.console_text;
+                finished: root.console_finished;
+
+                on_close => {
+                    root.show_console_dialog = false;
+                }
             }
-            create-requested() => {
-                root.show_start_dialog = true;
-            }
-            finish-requested() => {
-                root.show_finish_dialog = true;
+
+            mm := MainMenu {
+                width: 100%;
+                height: 100%;
+                enabled: !root.show_start_dialog;
+                items: items;
+                current-category <=> category;
+                current-item <=> item;
+                dirty: root.dirty;
+                category-changes() => {
+                    root.refresh_items(root.category);
+                }
+                create-requested() => {
+                    root.show_start_dialog = true;
+                }
+                finish-requested() => {
+                    root.show_finish_dialog = true;
+                }
             }
         }
     }

@@ -11,11 +11,11 @@ pub async fn hotfix_start(name: &str, sender: Sender<String>) -> Result<(), Pipe
     let branch = format!("hotfix/{}", name);
     let main_branch = GitWrapper::get_main_branch().await;
 
-    let send = |msg: &str| {
-        let _ = sender.send(msg.into());
+    let send = async |msg: &str| {
+        let _ = sender.send(msg.into()).await;
     };
 
-    send(&format!("Starting creation of hotfix {}...", name));
+    send(&format!("Starting creation of hotfix {}...", name)).await;
 
     Pipeline::new(sender.clone())
         .step(Step::Checkout(main_branch.clone()))
@@ -24,7 +24,7 @@ pub async fn hotfix_start(name: &str, sender: Sender<String>) -> Result<(), Pipe
         .run()
         .await?;
 
-    send("Hotfix started succesfully");
+    send("Hotfix started succesfully").await;
 
     Ok(())
 }
@@ -33,11 +33,11 @@ pub async fn hotfix_finish(name: &str, sender: Sender<String>) -> Result<(), Pip
     let branch = format!("hotfix/{}", name);
     let main_branch = GitWrapper::get_main_branch().await;
 
-    let send = |msg: &str| {
-        let _ = sender.send(msg.into());
+    let send = async |msg: &str| {
+        let _ = sender.send(msg.into()).await;
     };
 
-    send(&format!("Finishing hotfix {}...", name));
+    send(&format!("Finishing hotfix {}...", name)).await;
 
     Pipeline::new(sender.clone())
         .requires(Precondition::RequiresExistingLocalBranch(branch.clone()))
@@ -57,7 +57,7 @@ pub async fn hotfix_finish(name: &str, sender: Sender<String>) -> Result<(), Pip
         .run()
         .await?;
 
-    send("Hotfix finished succesfully");
+    send("Hotfix finished succesfully").await;
 
     Ok(())
 }

@@ -7,11 +7,11 @@ use tokio::sync::mpsc::Sender;
 pub async fn feature_start(name: &str, sender: Sender<String>) -> Result<(), PipelineError> {
     let branch = format!("feature/{}", name);
 
-    let send = |msg: &str| {
-        let _ = sender.send(msg.into());
+    let send = async |msg: &str| {
+        let _ = sender.send(msg.into()).await;
     };
 
-    send(&format!("Starting creation of feature {}...", name));
+    send(&format!("Starting creation of feature {}...", name)).await;
 
     Pipeline::new(sender.clone())
         .requires(Precondition::RequiresMissingBranch(branch.clone()))
@@ -21,7 +21,7 @@ pub async fn feature_start(name: &str, sender: Sender<String>) -> Result<(), Pip
         .run()
         .await?;
 
-    send("Feature started succesfully");
+    send("Feature started succesfully").await;
 
     Ok(())
 }
@@ -29,11 +29,11 @@ pub async fn feature_start(name: &str, sender: Sender<String>) -> Result<(), Pip
 pub async fn feature_finish(name: &str, sender: Sender<String>) -> Result<(), PipelineError> {
     let branch = format!("feature/{}", name);
 
-    let send = |msg: &str| {
-        let _ = sender.send(msg.into());
+    let send = async |msg: &str| {
+        let _ = sender.send(msg.into()).await;
     };
 
-    send(&format!("Finishing feature {}...", name));
+    send(&format!("Finishing feature {}...", name)).await;
 
     Pipeline::new(sender.clone())
         .requires(Precondition::RequiresExistingLocalBranch(branch.clone()))
@@ -49,7 +49,7 @@ pub async fn feature_finish(name: &str, sender: Sender<String>) -> Result<(), Pi
         .run()
         .await?;
 
-    send("Feature finished succesfully");
+    send("Feature finished succesfully").await;
 
     Ok(())
 }

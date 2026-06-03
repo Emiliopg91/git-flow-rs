@@ -1,10 +1,11 @@
 mod cli;
 mod gui;
 
-use std::{env, io::stdout};
+use std::{collections::HashMap, env, io::stdout};
 
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::{Shell::Bash, generate};
+use fwkarq::logger::{level::Level, provider::Provider};
 
 use crate::{cli::cli_fn, gui::gui_fn};
 
@@ -57,6 +58,8 @@ async fn main() {
         let mut cmd = CliArguments::command();
         generate(Bash, &mut cmd, "git-flow", &mut stdout());
     } else {
+        Provider::set_levels(HashMap::from([("Shell".to_string(), Level::WARNING)]));
+
         let cli: CliArguments = CliArguments::parse();
         let command = cli.command;
 
